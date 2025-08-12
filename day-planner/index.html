@@ -1,307 +1,179 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Day Planner</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        /* Custom styles for smooth transitions and fonts */
-        body {
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.5s ease, color 0.5s ease;
-            /* Default light mode background and text colors */
-            @apply bg-gray-100 text-gray-900;
-        }
-        /* Dark mode background and text colors applied when 'dark' class is present on html */
-        .dark body {
-            @apply bg-gray-900 text-gray-100;
-        }
-        .planner-container {
-            transition: background-color 0.5s ease;
-            /* Add some top padding to ensure content isn't too close to the top */
-            padding-top: 2rem; /* Equivalent to p-8 or py-8 for the container itself */
-        }
-        .time-slot {
-            transition: background-color 0.3s ease;
-            /* Specific background for light mode */
-            @apply bg-gray-50;
-        }
-        .dark .time-slot {
-            /* Specific background for dark mode */
-            @apply bg-gray-700;
-        }
-        input[type="text"], textarea {
-            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-        }
-        .dark input[type="text"], .dark textarea {
-            @apply bg-gray-800 border-gray-600 text-gray-100;
-        }
-        button {
-            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for buttons */
-        }
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Slightly larger shadow on hover */
-        }
-        .modal {
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        /* Custom scrollbar for better aesthetics */
-        body::-webkit-scrollbar {
-            width: 8px;
-        }
-        body::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        .dark body::-webkit-scrollbar-track {
-            background: #333;
-        }
-        body::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-        .dark body::-webkit-scrollbar-thumb {
-            background: #555;
-        }
-        body::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-        .dark body::-webkit-scrollbar-thumb:hover {
-            background: #777;
-        }
-
-        /* Specific background for the top section as per Figma */
-        .top-background {
-            /* Using a placeholder image that tries to mimic the Figma design's aesthetic */
-            background-image: url('https://placehold.co/1200x400/D0F0C0/000000?text=Daisy+Field');
-            background-size: cover;
-            background-position: center;
-            height: 200px; /* Adjust height as needed */
-            position: relative;
-            border-radius: 0 0 40px 40px; /* Rounded bottom corners as per design */
-            overflow: hidden; /* Ensure image stays within rounded corners */
-            filter: grayscale(20%); /* Slightly desaturate for a softer look */
-        }
-        .dark .top-background {
-            filter: grayscale(80%) brightness(0.7); /* More desaturated and slightly darker in dark mode */
-        }
-
-        /* Custom glow effect for active time slot (optional, for better UX) */
-        .input-active-glow:focus-within {
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* blue-500 with 50% opacity */
-        }
-
-        /* Ensuring icons remain white */
-        .edit-icon, .save-icon {
-            color: white;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day Planner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
+    .top-background {
+      background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1400&q=80');
+      background-size: cover;
+      background-position: center;
+      height: 220px;
+      position: relative;
+      border-radius: 0 0 40px 40px;
+      overflow: hidden;
+    }
+    .overlay-light {
+      background-color: rgba(0,0,0,0.25);
+    }
+    .overlay-dark {
+      background-color: rgba(0,0,0,0.55);
+    }
+    .fade-slide {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    .fade-slide.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    /* Flip clock styles */
+    .flip-digit {
+      display: inline-block;
+      background: #222;
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 2rem;
+      min-width: 40px;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+    .flip {
+      transform: rotateX(360deg);
+    }
+  </style>
 </head>
-<body class="flex flex-col items-center min-h-screen">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col items-center min-h-screen">
 
-    <!-- Top Section with Date and Time -->
-    <div class="top-background w-full flex flex-col justify-center items-center p-4 shadow-lg">
-        <!-- Overlay for dimming the background image -->
-        <div class="absolute inset-0 bg-black opacity-20 dark:opacity-50 transition-opacity duration-500 rounded-b-[40px]"></div>
-        <div class="relative z-10 text-white text-center">
-            <div id="currentDate" class="text-4xl md:text-5xl font-semibold mb-2 drop-shadow-md"></div>
-            <div id="currentTime" class="text-6xl md:text-7xl font-extrabold drop-shadow-lg"></div>
-        </div>
+  <!-- Top Section -->
+  <div class="top-background w-full flex flex-col justify-center items-center p-4 shadow-lg relative">
+    <div id="overlay" class="absolute inset-0 overlay-light transition-colors duration-500"></div>
+    <div class="relative z-10 text-center fade-slide" id="dateTimeContainer">
+      <div id="currentDate" class="text-3xl md:text-4xl font-semibold mb-2 drop-shadow-lg"></div>
+      <div id="clock" class="flex gap-1 justify-center"></div>
     </div>
+  </div>
 
-    <div class="planner-container bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 md:p-8 max-w-2xl w-full mx-auto -mt-40 relative z-20 mb-8 transform transition-transform duration-500 ease-out">
-        <!-- Header: Day Planner Title and Controls -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-200 mb-4 md:mb-0">Day Planner</h1>
-            <div class="flex space-x-4">
-                <button id="toggleDarkMode" class="p-3 rounded-full bg-blue-500 text-white hover:bg-blue-600 flex items-center justify-center shadow-lg w-12 h-12">
-                    <i class="fas fa-moon text-lg light-icon"></i>
-                    <i class="fas fa-sun text-lg dark-icon hidden"></i>
-                </button>
-                <button id="resetTasks" class="p-3 rounded-full bg-red-500 text-white hover:bg-red-600 flex items-center justify-center shadow-lg w-12 h-12">
-                    <i class="fas fa-redo text-lg"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Time Slots -->
-        <div id="timeSlotsContainer" class="space-y-4">
-            <!-- Time slots will be generated here by JavaScript -->
-        </div>
+  <!-- Planner -->
+  <div class="planner-container bg-white dark:bg-gray-800 rounded-xl shadow-xl p-9 md:p-9 max-w-2xl w-full mx-[60px] -mt-10 relative z-20 mb-8">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+      <h1 class="text-3xl md:text-4xl font-bold">Day Planner</h1>
+      <div class="flex space-x-4">
+        <!-- Disabled Dark Mode Button -->
+        <button id="toggleDarkMode" class="p-3 rounded-full bg-blue-500 text-white cursor-not-allowed opacity-50 w-12 h-12 flex items-center justify-center">
+          <i class="fas fa-moon"></i>
+        </button>
+        <button id="resetTasks" class="p-3 rounded-full bg-red-500 text-white hover:bg-red-600 flex items-center justify-center shadow-lg w-12 h-12 transition">
+          <i class="fas fa-redo text-lg"></i>
+        </button>
+      </div>
     </div>
+    <div id="timeSlotsContainer" class="space-y-4"></div>
+  </div>
 
-    <!-- Confirmation Modal for Reset -->
-    <div id="resetModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden opacity-0 transition-opacity">
-        <div class="bg-white dark:bg-gray-700 p-8 rounded-lg shadow-xl max-w-sm w-full text-center transform scale-95 transition-transform duration-300">
-            <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Clear all tasks?</h3>
-            <p class="text-gray-600 dark:text-gray-300 mb-6">This action cannot be undone.</p>
-            <div class="flex justify-around space-x-4">
-                <button id="cancelReset" class="py-3 px-6 rounded-lg bg-gray-300 text-gray-800 hover:bg-gray-400 font-medium shadow-md">No</button>
-                <button id="confirmReset" class="py-3 px-6 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium shadow-md">Yes, Clear</button>
-            </div>
-        </div>
+  <!-- Reset Modal -->
+  <div id="resetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden opacity-0 transition-opacity">
+    <div class="bg-white dark:bg-gray-700 p-8 rounded-lg shadow-xl max-w-sm w-full text-center transform scale-95 transition-transform duration-300">
+      <h3 class="text-xl font-semibold mb-4">Clear all tasks?</h3>
+      <p class="mb-6">This action cannot be undone.</p>
+      <div class="flex justify-around space-x-4">
+        <button id="cancelReset" class="py-3 px-6 rounded-lg bg-gray-300 text-gray-800 hover:bg-gray-400 font-medium shadow-md">No</button>
+        <button id="confirmReset" class="py-3 px-6 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium shadow-md">Yes, Clear</button>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const timeSlotsContainer = document.getElementById('timeSlotsContainer');
-        const currentDateElem = document.getElementById('currentDate');
-        const currentTimeElem = document.getElementById('currentTime');
-        const toggleDarkModeBtn = document.getElementById('toggleDarkMode');
-        const resetTasksBtn = document.getElementById('resetTasks');
-        const resetModal = document.getElementById('resetModal');
-        const confirmResetBtn = document.getElementById('confirmReset');
-        const cancelResetBtn = document.getElementById('cancelReset');
-        const lightIcon = document.querySelector('.light-icon');
-        const darkIcon = document.querySelector('.dark-icon');
+  <script>
+    const currentDateElem = document.getElementById('currentDate');
+    const clockEl = document.getElementById("clock");
+    let timeDigits = [];
 
-        // Initialize time slots from 9 AM to 5 PM
-        const timeHours = Array.from({ length: 9 }, (_, i) => 9 + i); // 9, 10, ..., 17 (5 PM)
+    // Flip clock helpers
+    function createDigit(value) {
+      const digit = document.createElement("div");
+      digit.className = "flip-digit";
+      const span = document.createElement("span");
+      span.textContent = value;
+      digit.appendChild(span);
+      return digit;
+    }
 
-        // Function to format time (e.g., 9 AM, 1 PM)
-        function formatTime(hour) {
-            const ampm = hour >= 12 ? 'PM' : 'AM';
-            const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-            return `${displayHour} ${ampm}`;
+    function initClock() {
+      const now = new Date();
+      currentDateElem.textContent = now.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+      const timeStr = now.toTimeString().slice(0, 8); // HH:MM:SS
+      clockEl.innerHTML = "";
+      timeDigits = [];
+
+      for (const char of timeStr) {
+        if (char === ":") {
+          const colon = document.createElement("div");
+          colon.textContent = ":";
+          colon.className = "text-2xl font-bold";
+          clockEl.appendChild(colon);
+        } else {
+          const digit = createDigit(char);
+          timeDigits.push(digit);
+          clockEl.appendChild(digit);
         }
+      }
+    }
 
-        // Function to update current date and time
-        function updateClock() {
-            const now = new Date();
-            const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            currentDateElem.textContent = now.toLocaleDateString('en-US', optionsDate);
-            const optionsTime = { hour: 'numeric', minute: '2-digit', hour12: true };
-            currentTimeElem.textContent = now.toLocaleTimeString('en-US', optionsTime);
+    function updateClock() {
+      const now = new Date();
+      currentDateElem.textContent = now.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+      const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, "");
+      timeDigits.forEach((digitEl, i) => {
+        const span = digitEl.querySelector("span");
+        const newVal = timeStr[i];
+        if (span.textContent !== newVal) {
+          digitEl.classList.add("flip");
+          setTimeout(() => {
+            span.textContent = newVal;
+            digitEl.classList.remove("flip");
+          }, 250);
         }
+      });
+    }
 
-        // Function to load tasks from localStorage
-        function loadTasks() {
-            // Clear existing slots to prevent duplicates if loadTasks is called multiple times
-            timeSlotsContainer.innerHTML = '';
+    // Reset tasks modal
+    const resetModal = document.getElementById('resetModal');
+    document.getElementById('resetTasks').addEventListener('click', () => {
+      resetModal.classList.remove('hidden');
+      setTimeout(() => resetModal.classList.remove('opacity-0'), 10);
+    });
+    document.getElementById('cancelReset').addEventListener('click', () => {
+      resetModal.classList.add('opacity-0');
+      setTimeout(() => resetModal.classList.add('hidden'), 300);
+    });
+    document.getElementById('confirmReset').addEventListener('click', () => {
+      localStorage.clear();
+      location.reload();
+    });
 
-            timeHours.forEach(hour => {
-                const taskId = `task-${hour}`;
-                const taskText = localStorage.getItem(taskId);
-                const timeSlotDiv = document.createElement('div');
-                timeSlotDiv.classList.add('time-slot', 'flex', 'items-center', 'space-x-4', 'p-4', 'rounded-lg', 'shadow-sm', 'border', 'border-gray-200', 'dark:border-gray-600', 'input-active-glow');
+    // Init clock and start updates
+    initClock();
+    setInterval(updateClock, 1000);
 
-                const formattedTime = formatTime(hour);
-                timeSlotDiv.innerHTML = `
-                    <div class="font-bold text-lg w-20 flex-shrink-0 text-gray-700 dark:text-gray-300">${formattedTime}</div>
-                    <input type="text" id="${taskId}" class="flex-grow p-3 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Plan your task here...">
-                    <button class="save-task-btn p-3 rounded-full bg-green-500 text-white hover:bg-green-600 shadow-md flex items-center justify-center w-10 h-10">
-                        <i class="fas fa-save save-icon"></i>
-                    </button>
-                `;
-                timeSlotsContainer.appendChild(timeSlotDiv);
-
-                const inputField = timeSlotDiv.querySelector(`#${taskId}`);
-                const saveButton = timeSlotDiv.querySelector('.save-task-btn');
-
-                if (taskText) {
-                    inputField.value = taskText;
-                    // Switch to edit mode by default if task exists
-                    saveButton.innerHTML = '<i class="fas fa-edit edit-icon"></i>'; // Change icon to edit
-                    saveButton.classList.remove('bg-green-500', 'hover:bg-green-600');
-                    saveButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
-                    inputField.setAttribute('readonly', true); // Make input readonly initially
-                }
-
-                // Event listener for saving/editing tasks
-                saveButton.addEventListener('click', () => {
-                    if (inputField.readOnly) {
-                        // Currently in read-only (edit) mode, switch to editable (save) mode
-                        inputField.removeAttribute('readonly');
-                        inputField.focus();
-                        saveButton.innerHTML = '<i class="fas fa-save save-icon"></i>'; // Change icon to save
-                        saveButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
-                        saveButton.classList.add('bg-green-500', 'hover:bg-green-600');
-                    } else {
-                        // Currently in editable (save) mode, save the task and switch to read-only
-                        localStorage.setItem(taskId, inputField.value);
-                        inputField.setAttribute('readonly', true);
-                        saveButton.innerHTML = '<i class="fas fa-edit edit-icon"></i>'; // Change icon to edit
-                        saveButton.classList.remove('bg-green-500', 'hover:bg-green-600');
-                        saveButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
-                    }
-                });
-
-                // Save task on Enter key press
-                inputField.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault(); // Prevent new line in input
-                        if (!inputField.readOnly) {
-                            localStorage.setItem(taskId, inputField.value);
-                            inputField.setAttribute('readonly', true);
-                            saveButton.innerHTML = '<i class="fas fa-edit edit-icon"></i>';
-                            saveButton.classList.remove('bg-green-500', 'hover:bg-green-600');
-                            saveButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
-                        }
-                    }
-                });
-            });
-        }
-
-        // Dark/Light Mode functionality
-        function applyTheme(theme) {
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-                lightIcon.classList.add('hidden');
-                darkIcon.classList.remove('hidden');
-            } else {
-                document.documentElement.classList.remove('dark');
-                lightIcon.classList.remove('hidden');
-                darkIcon.classList.add('hidden');
-            }
-            localStorage.setItem('theme', theme);
-        }
-
-        // Toggle Dark/Light Mode
-        toggleDarkModeBtn.addEventListener('click', () => {
-            const currentTheme = localStorage.getItem('theme') || 'light';
-            if (currentTheme === 'dark') {
-                applyTheme('light');
-            } else {
-                applyTheme('dark');
-            }
-        });
-
-        // Initialize theme on load
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        applyTheme(savedTheme);
-
-        // Reset functionality
-        resetTasksBtn.addEventListener('click', () => {
-            resetModal.classList.remove('hidden');
-            setTimeout(() => {
-                resetModal.classList.remove('opacity-0');
-            }, 10); // Small delay to allow transition
-            resetModal.querySelector('.transform').classList.remove('scale-95'); // Animate modal in
-            resetModal.querySelector('.transform').classList.add('scale-100');
-        });
-
-        cancelResetBtn.addEventListener('click', () => {
-            resetModal.classList.add('opacity-0');
-            resetModal.querySelector('.transform').classList.remove('scale-100'); // Animate modal out
-            resetModal.querySelector('.transform').classList.add('scale-95');
-            setTimeout(() => {
-                resetModal.classList.add('hidden');
-            }, 300); // Hide after transition
-        });
-
-        confirmResetBtn.addEventListener('click', () => {
-            localStorage.clear();
-            location.reload(); // Reload the page to reset all tasks
-        });
-
-        // Initial calls
-        updateClock();
-        setInterval(updateClock, 1000); // Update clock every second
-        loadTasks();
-    </script>
+    // Fade in date/time
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('dateTimeContainer').classList.add('show');
+      }, 300);
+    });
+  </script>
 </body>
 </html>
