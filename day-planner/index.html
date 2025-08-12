@@ -1,179 +1,312 @@
-<!DOCTYPE html>
-<html lang="en" class="light">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Day Planner</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily Planner — Responsive UI (Tailwind)</title>
+  <!-- Tailwind CDN (for prototyping) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      transition: background-color 0.5s ease, color 0.5s ease;
+    /* Custom tailwind config like variables */
+    :root{
+      --accent: #7dd3fc; /* sky-300 */
+      --muted: rgba(15,23,42,0.06);
+      --card-bg: rgba(255,255,255,0.75);
     }
-    .top-background {
-      background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1400&q=80');
-      background-size: cover;
-      background-position: center;
-      height: 220px;
-      position: relative;
-      border-radius: 0 0 40px 40px;
-      overflow: hidden;
+    .glass{
+      background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));
+      backdrop-filter: blur(6px) saturate(1.1);
     }
-    .overlay-light {
-      background-color: rgba(0,0,0,0.25);
+    [data-theme="dark"] {
+      --accent: #34d399; /* emerald */
+      --muted: rgba(255,255,255,0.03);
+      --card-bg: rgba(8,10,11,0.7);
     }
-    .overlay-dark {
-      background-color: rgba(0,0,0,0.55);
+
+    /* big cross-cut diagonal like the image */
+    .diagonal::before{
+      content: '';
+      position: absolute;
+      left: -10%; top: -6%;
+      width: 140%; height: 55%;
+      transform: rotate(-7deg);
+      background: linear-gradient(90deg, rgba(250,224,184,0.95) 0%, rgba(250,224,184,0.6) 40%, transparent 60%);
+      border-bottom-right-radius: 40px;
+      filter: drop-shadow(0 10px 30px rgba(2,6,23,0.18));
+      z-index: 1;
     }
-    .fade-slide {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.8s ease, transform 0.8s ease;
-    }
-    .fade-slide.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    /* Flip clock styles */
-    .flip-digit {
-      display: inline-block;
-      background: #222;
-      color: #fff;
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 2rem;
-      min-width: 40px;
-      text-align: center;
-      transition: transform 0.3s ease;
-    }
-    .flip {
-      transform: rotateX(360deg);
-    }
+
+    /* animated subtle float for header image */
+    @keyframes floaty { 0% { transform: translateY(0) } 50% { transform: translateY(-6px) } 100% { transform: translateY(0) } }
+
+    /* small modal animation */
+    @keyframes popIn { from { transform: scale(.85); opacity:0 } to { transform: scale(1); opacity:1 } }
+
+    /* thin scrollbar for planner area */
+    .planner-scroll::-webkit-scrollbar{ width:8px }
+    .planner-scroll::-webkit-scrollbar-thumb{ background: linear-gradient(180deg,var(--accent), #60a5fa); border-radius:9999px }
   </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col items-center min-h-screen">
+<body class="antialiased text-slate-800 bg-gradient-to-b from-slate-50 to-white" data-theme="light">
+  <div id="app" class="min-h-screen flex flex-col md:flex-row">
+    <!-- Left hero column -->
+    <aside class="relative w-full md:w-1/3 lg:w-1/4 p-6 md:p-8 overflow-hidden diagonal">
+      <div class="absolute inset-0 bg-cover bg-center opacity-90" style="background-image:url('https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1200&q=60')"></div>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
 
-  <!-- Top Section -->
-  <div class="top-background w-full flex flex-col justify-center items-center p-4 shadow-lg relative">
-    <div id="overlay" class="absolute inset-0 overlay-light transition-colors duration-500"></div>
-    <div class="relative z-10 text-center fade-slide" id="dateTimeContainer">
-      <div id="currentDate" class="text-3xl md:text-4xl font-semibold mb-2 drop-shadow-lg"></div>
-      <div id="clock" class="flex gap-1 justify-center"></div>
-    </div>
+      <div class="relative z-10 flex flex-col gap-6 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <div id="clock" class="text-6xl md:text-7xl font-extrabold leading-none drop-shadow-lg">21<span id="clock-min" class="text-6xl">:27</span></div>
+            <div id="date" class="mt-1 uppercase tracking-wide text-xs text-amber-100/80">Fri 8 August</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="themeToggle" aria-label="Toggle theme" class="p-2 rounded-full glass shadow-md">
+              <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m8.66-8.66h-1M4.34 12h-1M18.36 5.64l-.7.7M6.34 17.66l-.7.7M18.36 18.36l-.7-.7M6.34 6.34l-.7-.7M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4 p-4 rounded-2xl shadow-2xl glass" style="z-index:5">
+          <h2 class="text-black/90 dark:text-white font-semibold text-lg text-center">Day Planner</h2>
+          <p class="text-xs text-slate-700/80 dark:text-slate-200/70 text-center">Plan your day &amp; stay on track</p>
+
+          <div class="mt-4 flex gap-2 justify-center items-center">
+            <button id="resetBtn" class="px-3 py-1 rounded-full bg-slate-800 text-white text-sm shadow hover:scale-105 transition-transform">Reset</button>
+            <button id="clearBtn" class="px-3 py-1 rounded-full bg-white/90 text-slate-800 text-sm shadow hover:scale-105 transition-transform">Clear All</button>
+          </div>
+        </div>
+
+        <div class="mt-auto text-xs text-white/80">Made with ♥ — Responsive • Animations • LocalStorage</div>
+      </div>
+    </aside>
+
+    <!-- Right planner column -->
+    <main class="flex-1 p-4 md:p-8 lg:p-12 bg-transparent">
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden planner-scroll max-h-[78vh] md:max-h-[82vh] p-4 sm:p-6">
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 items-center">
+            <div>
+              <h3 class="text-slate-900 dark:text-white text-xl font-bold">Today's Schedule</h3>
+              <p class="text-sm text-slate-500 dark:text-slate-300/80">Fill each slot — tasks are saved automatically</p>
+            </div>
+            <div class="flex gap-3 justify-start sm:justify-end items-center">
+              <label class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-300/80">
+                <input id="autoSave" type="checkbox" class="h-4 w-4" checked /> Auto-save
+              </label>
+              <button id="exportBtn" class="px-3 py-1 bg-emerald-400 text-white rounded-lg text-sm shadow hover:translate-y-[-2px] transition">Export JSON</button>
+            </div>
+          </div>
+
+          <!-- planner list -->
+          <div id="slots" class="space-y-3">
+            <!-- JS will populate time slots here -->
+          </div>
+
+        </div>
+      </div>
+    </main>
   </div>
 
-  <!-- Planner -->
-  <div class="planner-container bg-white dark:bg-gray-800 rounded-xl shadow-xl p-9 md:p-9 max-w-2xl w-full mx-[60px] -mt-10 relative z-20 mb-8">
-    <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-      <h1 class="text-3xl md:text-4xl font-bold">Day Planner</h1>
-      <div class="flex space-x-4">
-        <!-- Disabled Dark Mode Button -->
-        <button id="toggleDarkMode" class="p-3 rounded-full bg-blue-500 text-white cursor-not-allowed opacity-50 w-12 h-12 flex items-center justify-center">
-          <i class="fas fa-moon"></i>
-        </button>
-        <button id="resetTasks" class="p-3 rounded-full bg-red-500 text-white hover:bg-red-600 flex items-center justify-center shadow-lg w-12 h-12 transition">
-          <i class="fas fa-redo text-lg"></i>
-        </button>
+  <!-- Clear confirmation modal -->
+  <div id="modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-2xl w-11/12 max-w-md animate-pop" style="animation:popIn .18s ease-out">
+      <h4 class="text-lg font-semibold text-slate-900 dark:text-white">Clear all tasks?</h4>
+      <p class="text-sm text-slate-600 dark:text-slate-300/80 mt-2">This will permanently remove all saved tasks from your browser. You can export before clearing.</p>
+      <div class="mt-4 flex gap-3 justify-end">
+        <button id="cancelModal" class="px-3 py-1 rounded bg-slate-100 dark:bg-slate-700">Cancel</button>
+        <button id="confirmClear" class="px-3 py-1 rounded bg-red-500 text-white">Clear</button>
       </div>
     </div>
-    <div id="timeSlotsContainer" class="space-y-4"></div>
   </div>
 
-  <!-- Reset Modal -->
-  <div id="resetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden opacity-0 transition-opacity">
-    <div class="bg-white dark:bg-gray-700 p-8 rounded-lg shadow-xl max-w-sm w-full text-center transform scale-95 transition-transform duration-300">
-      <h3 class="text-xl font-semibold mb-4">Clear all tasks?</h3>
-      <p class="mb-6">This action cannot be undone.</p>
-      <div class="flex justify-around space-x-4">
-        <button id="cancelReset" class="py-3 px-6 rounded-lg bg-gray-300 text-gray-800 hover:bg-gray-400 font-medium shadow-md">No</button>
-        <button id="confirmReset" class="py-3 px-6 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium shadow-md">Yes, Clear</button>
-      </div>
-    </div>
-  </div>
-
+  <!-- minimal script -->
   <script>
-    const currentDateElem = document.getElementById('currentDate');
-    const clockEl = document.getElementById("clock");
-    let timeDigits = [];
+    // --- utility & slots setup ---
+    const startHour = 8; // 8 AM
+    const endHour = 20; // 8 PM
+    const slotsContainer = document.getElementById('slots');
+    const autoSaveCheckbox = document.getElementById('autoSave');
 
-    // Flip clock helpers
-    function createDigit(value) {
-      const digit = document.createElement("div");
-      digit.className = "flip-digit";
-      const span = document.createElement("span");
-      span.textContent = value;
-      digit.appendChild(span);
-      return digit;
+    // load saved state
+    const STORAGE_KEY = 'daily_planner_tasks_v1';
+    let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+
+    function hourLabel(h){
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const hour12 = ((h + 11) % 12) + 1;
+      return `${hour12} ${ampm}`;
     }
 
-    function initClock() {
-      const now = new Date();
-      currentDateElem.textContent = now.toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-      });
-      const timeStr = now.toTimeString().slice(0, 8); // HH:MM:SS
-      clockEl.innerHTML = "";
-      timeDigits = [];
+    function createSlot(hour){
+      const id = `h-${hour}`;
+      const container = document.createElement('div');
+      container.className = 'flex gap-3 items-start p-3 rounded-xl border border-slate-100 dark:border-slate-700/60 bg-white/60 dark:bg-slate-900/60 shadow-sm transition hover:scale-[1.01]';
 
-      for (const char of timeStr) {
-        if (char === ":") {
-          const colon = document.createElement("div");
-          colon.textContent = ":";
-          colon.className = "text-2xl font-bold";
-          clockEl.appendChild(colon);
-        } else {
-          const digit = createDigit(char);
-          timeDigits.push(digit);
-          clockEl.appendChild(digit);
+      // time label
+      const time = document.createElement('div');
+      time.className = 'w-20 text-sm font-medium text-slate-700 dark:text-slate-200';
+      time.textContent = hourLabel(hour);
+
+      // input area
+      const inputWrap = document.createElement('div');
+      inputWrap.className = 'flex-1 flex items-center gap-2';
+
+      const input = document.createElement('textarea');
+      input.className = 'flex-1 min-h-[44px] resize-none p-2 rounded-lg text-sm bg-transparent outline-none dark:text-white text-slate-800';
+      input.placeholder = 'Add a task...';
+      input.value = tasks[id] || '';
+
+      // save icon
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'p-2 rounded-md border hover:shadow-sm';
+      saveBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/></svg>';
+
+      saveBtn.addEventListener('click', ()=>{
+        tasks[id] = input.value;
+        saveTasks();
+        saveBtn.classList.add('opacity-70');
+        setTimeout(()=>saveBtn.classList.remove('opacity-70'),400);
+      });
+
+      // auto-save
+      input.addEventListener('input', ()=>{
+        if(autoSaveCheckbox.checked){
+          tasks[id] = input.value;
+          saveTasks();
         }
+      });
+
+      // clear single slot
+      const clearSingle = document.createElement('button');
+      clearSingle.className = 'p-2 rounded-md border hover:bg-slate-50 dark:hover:bg-slate-700/60';
+      clearSingle.title = 'Clear this slot';
+      clearSingle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>';
+      clearSingle.addEventListener('click', ()=>{
+        input.value = '';
+        delete tasks[id];
+        saveTasks();
+      });
+
+      inputWrap.appendChild(input);
+      inputWrap.appendChild(saveBtn);
+      inputWrap.appendChild(clearSingle);
+
+      container.appendChild(time);
+      container.appendChild(inputWrap);
+
+      return container;
+    }
+
+    function renderSlots(){
+      slotsContainer.innerHTML = '';
+      for(let h=startHour; h<=endHour; h++){
+        slotsContainer.appendChild(createSlot(h));
       }
     }
 
-    function updateClock() {
-      const now = new Date();
-      currentDateElem.textContent = now.toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-      });
-      const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, "");
-      timeDigits.forEach((digitEl, i) => {
-        const span = digitEl.querySelector("span");
-        const newVal = timeStr[i];
-        if (span.textContent !== newVal) {
-          digitEl.classList.add("flip");
-          setTimeout(() => {
-            span.textContent = newVal;
-            digitEl.classList.remove("flip");
-          }, 250);
-        }
-      });
+    function saveTasks(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     }
 
-    // Reset tasks modal
-    const resetModal = document.getElementById('resetModal');
-    document.getElementById('resetTasks').addEventListener('click', () => {
-      resetModal.classList.remove('hidden');
-      setTimeout(() => resetModal.classList.remove('opacity-0'), 10);
-    });
-    document.getElementById('cancelReset').addEventListener('click', () => {
-      resetModal.classList.add('opacity-0');
-      setTimeout(() => resetModal.classList.add('hidden'), 300);
-    });
-    document.getElementById('confirmReset').addEventListener('click', () => {
-      localStorage.clear();
-      location.reload();
+    // initial render
+    renderSlots();
+
+    // --- theme toggle ---
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    const themeIcon = document.getElementById('themeIcon');
+    const savedTheme = localStorage.getItem('planner_theme');
+    if(savedTheme) body.setAttribute('data-theme', savedTheme);
+    updateThemeIcon();
+
+    themeToggle.addEventListener('click', ()=>{
+      const cur = body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      const next = cur === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', next);
+      localStorage.setItem('planner_theme', next);
+      // adjust page-level classes
+      if(next === 'dark'){
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('bg-slate-900');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('bg-slate-900');
+      }
+      updateThemeIcon();
     });
 
-    // Init clock and start updates
-    initClock();
+    function updateThemeIcon(){
+      const cur = body.getAttribute('data-theme');
+      if(cur === 'dark'){
+        themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />';
+      } else {
+        themeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m8.66-8.66h-1M4.34 12h-1M18.36 5.64l-.7.7M6.34 17.66l-.7.7M18.36 18.36l-.7-.7M6.34 6.34l-.7-.7M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
+      }
+    }
+
+    // --- clock & date ---
+    function updateClock(){
+      const now = new Date();
+      const hh = now.getHours().toString().padStart(2,'0');
+      const mm = now.getMinutes().toString().padStart(2,'0');
+      const dd = now.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'long' });
+      document.getElementById('clock').innerHTML = `${hh}<span id="clock-min" class="text-3xl">:${mm}</span>`;
+      document.getElementById('date').textContent = dd;
+    }
+    updateClock();
     setInterval(updateClock, 1000);
 
-    // Fade in date/time
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        document.getElementById('dateTimeContainer').classList.add('show');
-      }, 300);
+    // --- modal logic ---
+    const modal = document.getElementById('modal');
+    const clearBtn = document.getElementById('clearBtn');
+    const cancelModal = document.getElementById('cancelModal');
+    const confirmClear = document.getElementById('confirmClear');
+    clearBtn.addEventListener('click', ()=> modal.classList.remove('hidden'));
+    cancelModal.addEventListener('click', ()=> modal.classList.add('hidden'));
+    confirmClear.addEventListener('click', ()=>{
+      tasks = {};
+      saveTasks();
+      renderSlots();
+      modal.classList.add('hidden');
     });
+
+    // reset button restores sample demo
+    document.getElementById('resetBtn').addEventListener('click', ()=>{
+      tasks = {};
+      // add a couple of helpful samples
+      tasks['h-9'] = 'Morning standup & emails';
+      tasks['h-11'] = 'Work on feature X';
+      tasks['h-14'] = 'Lunch & quick walk';
+      saveTasks();
+      renderSlots();
+    });
+
+    // export
+    document.getElementById('exportBtn').addEventListener('click', ()=>{
+      const dataStr = JSON.stringify(tasks, null, 2);
+      const blob = new Blob([dataStr], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `planner-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // initial apply dark class
+    if(document.body.getAttribute('data-theme') === 'dark'){
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('bg-slate-900');
+    }
+
+    // small animation helper
+    (function pulseHeader(){
+      const img = document.querySelector('aside > div[style]');
+      if(img) img.style.animation = 'floaty 6s ease-in-out infinite';
+    })();
   </script>
 </body>
 </html>
